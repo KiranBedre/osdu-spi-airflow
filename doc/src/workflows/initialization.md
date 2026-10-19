@@ -1,0 +1,188 @@
+# Repository Initialization Workflow
+
+Initialization turns a repository created from the template into a working fork: it deploys the fork workflows, creates the three branches, applies rulesets and settings, and verifies the result.
+
+It runs in two phases. The first opens a setup issue within seconds so you can see that setup started. The second does the slow configuration work after you reply to that issue.
+
+## When It Runs
+
+The initialization workflow starts on:
+
+- **Template creation** - Automatically triggers when you create a new repository from this template
+- **Push to `main`** - The template's initial commit starts the workflow in a newly created repository
+
+The completion phase starts only after an owner, member, or collaborator replies to the generated initialization issue.
+
+## What Happens
+
+The two phases:
+
+### Immediate Setup Phase (30 seconds)
+The workflow verifies that the repository is not the template itself, creates the standard labels, and opens a setup issue. Reply to that issue with the upstream repository reference; the issue comment triggers the completion workflow.
+
+### Full Configuration Phase (5-10 minutes)
+The completion workflow validates the upstream repository, sets
+`UPSTREAM_REPO_URL` and `SYNC_MODE`, creates `fork_upstream` and
+`fork_integration`, deploys all fork workflows, applies fork resources and
+repository rulesets, and marks `INITIALIZATION_COMPLETE`.
+
+The default `filter` mode generates a provider-less `fork_upstream`, seeds the
+fork-owned Azure trees, and plants `.github/upstream-filter.yml`. Repositories
+without a provider/core ownership split can select `passthrough` by adding
+`mode: passthrough` as the second line of the issue response. That mode keeps
+the upstream tree intact, publishes its tags, skips Azure tree seeding, and
+still receives SPI workflow updates through template sync.
+
+If the current upstream tree is valid for GitHub but its deleted history
+contains objects GitHub rejects, `mode: snapshot` keeps the tip tree intact
+without attaching the source commit as a Git parent. It records the full
+source SHA, skips source tags and Azure tree seeding, and chains future
+snapshots from the prior `fork_upstream` tip.
+
+If rejected objects are still present in the current upstream tree,
+`mode: filtered-snapshot` applies `.github/upstream-filter.yml` before creating
+the destination-only snapshot chain. It keeps filter mode's ownership split,
+halt behavior, and Azure tree seeding, but does not fetch source tags or attach
+the source commit as a Git parent.
+
+The filter configuration comes from the template's `.github/fork-resources/upstream-filter.yml` with `<service>` substituted from the upstream repository name. A service that deviates from the conventional shape (extra top-level entries, a module prefix that differs from the repository name) uses the escape hatch: commit a complete `.github/upstream-filter.yml` to the fork's `main` before replying to the initialization issue, and initialization prefers that file over the template. If the filter halts on an unclassified entry, the initialization issue receives the halt detail and both remediation paths; fix the config and comment again to retry.
+
+The Azure provider and test trees (`provider/<service>-azure`, `testing/<service>-test-azure`) are seeded from the newest upstream commit that still contains them, version-stamped against the generated tree, and committed on `fork_integration` before the merge to `main`. From that point the fork owns them: they never appear on `fork_upstream`, so upstream merges cannot touch them.
+
+On success the setup issue is closed and the repository is ready for its first sync. On failure the setup issue is updated with the error and the steps to fix it.
+
+## When You Need to Act
+
+### Required Configuration
+- **GitHub App credentials** - `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` must be available for workflow and ruleset writes
+- **Upstream repository** - Reply to the initialization issue with `owner/repository` or a supported repository URL
+- **Upstream mode** - Use filter for conventional Java services, passthrough for an intact source graph, snapshot when only source history is rejected, or filtered-snapshot when the current tip must also be reduced
+- **Filter configuration** - Generated automatically from the template; only nonconventional services need a hand-planted `.github/upstream-filter.yml` on `main` before replying to the issue
+- **Team permissions** - Make sure the team has the access it needs
+
+### Optional Configuration
+- **Notifications** - Set up issue/PR notifications for your team
+- **Custom labels** - Add project-specific labels beyond defaults
+
+## How to Respond
+
+### Complete Required Setup
+1. **Check setup issue** - Look for repository configuration checklist
+2. **Reply with the upstream repository**:
+   ```
+   OpenSubsurfaceDataForum/partition
+   ```
+   For an intact repository:
+   ```
+   https://community.opengroup.org/osdu/example
+   mode: passthrough
+   ```
+   For an intact tree whose source history cannot be published:
+   ```
+   https://community.opengroup.org/osdu/example
+   mode: snapshot
+   ```
+   For a filtered tree whose source history cannot be published:
+   ```
+   https://community.opengroup.org/osdu/example
+   mode: filtered-snapshot
+   ```
+
+3. **Verify repository variables** - Initialization sets `UPSTREAM_REPO_URL`, `SYNC_MODE`, and `INITIALIZATION_COMPLETE`
+4. **Verify branch protection** - Ensure the Default Branch Protection, Integration Branch Protection, and GitHub Copilot Code Review rulesets are active
+5. **Test initial sync** - Run upstream sync manually to verify setup
+
+### Handle Setup Failures
+```bash
+# Check workflow logs in Actions tab
+# Common issues and solutions:
+
+# Permission errors
+# - Ensure repository has Actions write permissions
+# - Check team has admin access to repository
+
+# Branch creation failures
+# - Verify default branch is 'main'
+# - Check for existing conflicting branches
+
+# Workflow deployment issues
+# - Ensure Actions are enabled in repository settings
+# - Verify no conflicting workflow files exist
+```
+
+### Verify Successful Setup
+1. **Check branches** - Should have `main`, `fork_upstream`, `fork_integration`
+2. **Test workflows** - All workflows should be visible in Actions tab
+3. **Verify protection** - Branch protection rules should be active
+4. **Run sync test** - Manual upstream sync should work without errors
+
+## Repository Structure Created
+
+### Branches
+- **`main`** - Your production branch (protected)
+- **`fork_upstream`** - Generated upstream-owned tree; provider-less in filter mode, intact with source ancestry in passthrough mode, intact without source ancestry in snapshot mode, and filtered without source ancestry in filtered-snapshot mode
+- **`fork_integration`** - Integration and conflict resolution branch
+
+### Workflows Installed
+- **`sync.yml`** - Daily upstream synchronization
+- **`cascade.yml`** - Three-branch integration process
+- **`build.yml`** - Build and test automation
+- **`validate.yml`** - PR quality gates
+- **`release.yml`** - Automated version and image-tag management
+- **Supporting workflows** - Template sync, CodeQL, Dependabot validation, cascade monitoring, integration cleanup, settings reconciliation, and GHCR retention
+
+### Security Configuration
+- **Branch protection** - Required PR reviews and status checks
+- **Action permissions** - Appropriate workflow execution permissions
+- **Issue templates** - Standardized issue reporting
+- **Security scanning** - Dependabot and vulnerability detection
+
+## Configuration
+
+| Name | Type | Purpose |
+|------|------|---------|
+| `UPSTREAM_REPO_URL` | Variable, set during initialization | Repository to synchronize |
+| `SYNC_MODE` | Variable, set during initialization | `filter`, `filtered-snapshot`, `passthrough`, or `snapshot` upstream tree generation |
+| `INITIALIZATION_COMPLETE` | Variable, set during initialization | Enables fork workflows |
+| `MAVEN_PROFILE` | Optional variable | Overrides the `core,azure` default |
+| `SERVICE_NAME` | Optional variable | Overrides the repository-name image/service slug |
+| `SERVICE_TARGET_JAR` | Optional variable | Disambiguates repositories that build multiple Azure JARs |
+| `GITHUB_TOKEN` | Automatic secret | Normal GitHub API and package operations |
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "Setup issue not created" | Check Actions are enabled, rerun workflow |
+| "Branch creation failed" | Verify default branch is 'main', check permissions |
+| "Workflow deployment error" | Remove conflicting `.github/workflows/` files |
+| "Protection rules failed" | Ensure admin access, check repository settings |
+| "Initial sync fails" | Verify the `UPSTREAM_REPO_URL` variable and filter configuration |
+
+## Post-Setup Checklist
+
+- [ ] **Setup issue closed successfully** - Initialization completed without errors
+- [ ] **Three branches exist** - `main`, `fork_upstream`, `fork_integration`
+- [ ] **`fork_upstream` matches its mode** - Provider-less in filter mode, or byte-identical to the upstream tip in passthrough and snapshot modes
+- [ ] **Mode-specific setup is complete** - Azure trees and filter config are seeded in filter mode, upstream tags are published in passthrough mode, or source ancestry and tags are omitted in snapshot mode
+- [ ] **Workflows active** - All deployed fork workflows are visible in the Actions tab
+- [ ] **Variables configured** - `UPSTREAM_REPO_URL`, `SYNC_MODE`, and `INITIALIZATION_COMPLETE` are set
+- [ ] **GitHub App available** - Release App credentials support protected writes
+- [ ] **Protection enabled** - `main` branch requires PR reviews
+- [ ] **Initial sync works** - Manual upstream sync runs successfully
+- [ ] **Team permissions** - Team has appropriate repository access
+
+## Next Steps
+
+1. **Verify upstream sync** - Confirm `UPSTREAM_REPO_URL` matches the issue response
+2. **Run first sync** - Manually trigger upstream synchronization workflow
+3. **Set up notifications** - Configure team alerts for sync issues and PRs
+4. **Review documentation** - Read [synchronization](synchronization.md) and [cascade](cascade.md) workflows
+5. **Add team members** - Invite collaborators with appropriate permissions
+
+## Related
+
+- [Synchronization Workflow](synchronization.md) - Next step after initialization
+- [Three-Branch Strategy](../adr/001-three-branch-strategy.md) - Branching architecture
+- [Initialization Security](../adr/016-initialization-security-handling.md) - Security configuration details
+- [ADR-038: Upstream Filter Transform](../adr/038-upstream-filter-transform.md) - Filter and Azure seeding model
