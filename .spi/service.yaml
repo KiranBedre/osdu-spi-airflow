@@ -1,0 +1,29 @@
+schemaVersion: 4
+service:
+  name: airflow
+  archetype: native-container-azure
+  sourcePath: .
+  image:
+    context: .
+    dockerfile: .spi/image/Dockerfile
+    platforms: linux/amd64
+tests:
+  acceptance:
+    type: script
+    path: .spi
+    entrypoint: acceptance/run.sh
+    arguments:
+      - "--url"
+      - "${AIRFLOW_HEALTH_URL}"
+      - "--token"
+      - "${TOKEN}"
+      - "--report"
+      - "acceptance/results/airflow-health.xml"
+    reportPaths:
+      - acceptance/results/airflow-health.xml
+    timeoutMinutes: 10
+    bindings:
+      AIRFLOW_HEALTH_URL:
+        source: gateway
+        suffix: /airflow/api/v2/monitor/health
+      TOKEN: { source: token }
