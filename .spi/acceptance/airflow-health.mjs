@@ -44,10 +44,10 @@ export async function getHealth(url, accessToken, fetchImplementation = fetch) {
   }
   const payload = await response.json();
   if (payload?.metadatabase?.status !== "healthy") {
-    throw new Error(`Airflow metadatabase is '${payload?.metadatabase?.status ?? "unknown"}'`);
+    throw new Error("Airflow metadatabase is not healthy");
   }
   if (payload?.scheduler?.status !== "healthy") {
-    throw new Error(`Airflow scheduler is '${payload?.scheduler?.status ?? "unknown"}'`);
+    throw new Error("Airflow scheduler is not healthy");
   }
   return payload;
 }

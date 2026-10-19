@@ -53,5 +53,5 @@ test("main writes failure JUnit for an unhealthy scheduler", async () => {
   assert.equal(result, 1);
   const evidence = await readFile(report, "utf8");
   assert.match(evidence, /failures="1"/);
-  assert.match(evidence, /scheduler is &apos;unhealthy&apos;/);
+  assert.match(evidence, /scheduler is not healthy/);
 });
