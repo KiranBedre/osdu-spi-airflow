@@ -1,0 +1,4 @@
+**
+!.spi/
+!.spi/runtime/
+!.spi/runtime/requirements.txt

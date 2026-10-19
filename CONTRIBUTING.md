@@ -1,29 +1,32 @@
 # Contributing
 
-This repository is the Azure implementation of an OSDU community service. It tracks the
-upstream [OSDU project](https://community.opengroup.org/osdu/platform) and carries the
-Azure provider on top.
+This repository is an original SPI-owned runtime with no upstream source
+repository. Apache Airflow is a pinned image dependency, not a Git upstream.
 
 > [!IMPORTANT]
-> Code contributions are limited to Microsoft employees at this time. Anyone can report
-> a bug or request a feature through [GitHub Issues](../../issues).
+> Code contributions are limited to Microsoft employees at this time. Anyone
+> can report a bug or request a feature through GitHub Issues.
 
-## Where a change belongs
-
-This tree has three owners; [`.github/CODEOWNERS`](.github/CODEOWNERS) maps the paths.
+## Ownership
 
 | Area | Owner | Where to make the change |
 |---|---|---|
-| `provider/*-azure/`, `testing/*-test-azure/`, `.spi/`, `.github/workflows/service-*.yml`, `.github/upstream-filter.yml`, `.github/CODEOWNERS`, `CONTRIBUTING.md`, `README.md` | This repository | A pull request here. |
-| `.github/` (except the files above), `build/`, `.release-please-config.json` | [`Azure/osdu-spi`](https://github.com/Azure/osdu-spi) | The template. Template sync overwrites these files here. |
-| Everything else (shared service code) | OSDU community | Upstream in [OSDU GitLab](https://community.opengroup.org/osdu/platform). To bring in a specific upstream fix early, port it and add the `port` label to the pull request. |
+| `.spi/`, `README.md`, `CONTRIBUTING.md` | This repository | A pull request here |
+| `.github/`, `build/`, `.release-please-config.json` | `KiranBedre/osdu-spi` | The template; template sync overwrites these files |
+| DAG artifacts and task images | The service repository | VDS, ZGY, or the repository that owns the workflow |
+| Airflow chart and Azure resources | `Azure/osdu-spi-stack` | The Stack repository |
 
 ## Making a change
 
-1. Branch from `main` with a type prefix: `feat/…`, `fix/…`, `chore/…`.
-2. Build and test with `mvn clean install`, adding `--settings=.mvn/community-maven.settings.xml` when that file exists, as CI does.
-3. Use [Conventional Commits](https://www.conventionalcommits.org/) for commits and the pull request title; release-please versions from them.
-4. Open a pull request against `main`. Merging needs passing CodeQL and validation checks, every review thread resolved, and a code owner's approval.
+1. Branch from `main` with a type prefix such as `feat/`, `fix/`, or `chore/`.
+2. Keep runtime dependencies exact and compatible with the pinned Airflow and
+   Python versions.
+3. Run `node --test .spi/tests/*.test.mjs` and build the Dockerfile.
+4. Use Conventional Commits for commits and pull request titles.
+5. Open a pull request against `main`.
+
+Merging requires passing validation and CodeQL checks, every review thread
+resolved, and the repository's required approval.
 
 ## License
 
