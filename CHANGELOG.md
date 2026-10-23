@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/KiranBedre/osdu-spi-airflow/compare/v1.3.0...v1.3.1) (2026-10-23)
+
+
+### 🔧 Miscellaneous
+
+* Sync template updates ([#8](https://github.com/KiranBedre/osdu-spi-airflow/issues/8)) ([7a37a6d](https://github.com/KiranBedre/osdu-spi-airflow/commit/7a37a6d486fe57a8e6b4582c387dc796625bed88))
+* **template-sync:** Sync reconciled template ([a59dbf8](https://github.com/KiranBedre/osdu-spi-airflow/commit/a59dbf875518c8c03e78747e9bb6d50b991949ff))
+
 ## [1.3.0](https://github.com/KiranBedre/osdu-spi-airflow/compare/v1.2.0...v1.3.0) (2026-10-19)
 
 
